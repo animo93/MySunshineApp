@@ -67,7 +67,6 @@ public class MainActivityFragment extends Fragment {
         SharedPreferences preferences= PreferenceManager.getDefaultSharedPreferences(getActivity());
         String location=preferences.getString(getString(R.string.pref_location_key),
                 getString(R.string.pref_location_default));
-        Log.e(MainActivityFragment.class.getSimpleName(),"Location is "+location);
         fetchWeatherTask.execute(location);
 
     }
@@ -82,18 +81,19 @@ public class MainActivityFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView=inflater.inflate(R.layout.fragment_main, container, false);
-       // String []forecastArray={"Today-sunny-88/63","Tomorrow-Foggy-70/46","Weds-cloudy-70/66","Thurs-rainy-64/51"};
+        // String []forecastArray={"Today-sunny-88/63","Tomorrow-Foggy-70/46","Weds-cloudy-70/66","Thurs-rainy-64/51"};
         adapter=new ArrayAdapter<String>(
                 getActivity(),
                 R.layout.list_item_forecast,
                 R.id.list_item_forecast_textview,
                 new ArrayList<String>());
         ListView listView=(ListView) rootView.findViewById(R.id.listview_forecast);
-       listView.setAdapter(adapter);
+        listView.setAdapter(adapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 String forecast=adapter.getItem(position);
+                Log.e(MainActivityFragment.class.getSimpleName(),forecast);
                 Intent intent=new Intent(getActivity(),DetailActivity.class)
                         .putExtra(Intent.EXTRA_TEXT,forecast);
                 startActivity(intent);
@@ -120,7 +120,13 @@ public class MainActivityFragment extends Fragment {
             return shortenedDateFormat.format(time);
         }
 
-        private String formatHighLows(double high,double low){
+        private String formatHighLows(double high,double low,String unitType){
+            if(unitType.equals(getString(R.string.pref_units_imperial))){
+                high=(high*1.8)+32;
+                low=(low*1.8)+32;
+            }else if(!unitType.equals(R.string.pref_units_metric)){
+                Log.e(LOG_TAG,"Unit type not found "+unitType);
+            }
             long roundedHigh=Math.round(high);
             long roundedLow=Math.round(low);
             String highLowStr=roundedHigh+"/"+roundedLow;
@@ -140,14 +146,16 @@ public class MainActivityFragment extends Fragment {
 
             Time dayTime=new Time();
             dayTime.setToNow();
-            Log.e(LOG_TAG," "+dayTime.getWeekNumber());
 
             int julianStartDay=Time.getJulianDay(System.currentTimeMillis(),dayTime.gmtoff);
-            Log.e(LOG_TAG," "+julianStartDay);
 
             dayTime=new Time();
 
             String[] resultStr=new String[numDays];
+            SharedPreferences preferences=PreferenceManager.getDefaultSharedPreferences(getActivity());
+            String unitType=preferences.getString(
+                    getString(R.string.pref_units_key),
+                    getString(R.string.pref_units_metric));
             for(int i=0;i<weatherArray.length();i++){
                 String day;
                 String description;
@@ -165,11 +173,9 @@ public class MainActivityFragment extends Fragment {
                 double high=temperatureObject.getDouble(OWM_MAX);
                 double low=temperatureObject.getDouble(OWM_MIN);
 
-                highAndLow=formatHighLows(high,low);
+                highAndLow=formatHighLows(high,low,unitType);
                 resultStr[i]=day+" - "+description+" - "+highAndLow;
             }
-            for(String s:resultStr)
-                Log.v(LOG_TAG,"Forecast entry" + s);
             return resultStr;
         }
 
@@ -194,7 +200,7 @@ public class MainActivityFragment extends Fragment {
                 // Construct the URL for the OpenWeatherMap query
                 // Possible parameters are available at OWM's forecast API page, at
                 // http://openweathermap.org/API#forecast
-               // URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=94043&mode=json&units=metric&cnt=7&appid=e6e6e3ac01ec95be41fb344a0af6e4e8");
+                // URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=94043&mode=json&units=metric&cnt=7&appid=e6e6e3ac01ec95be41fb344a0af6e4e8");
                 final String FORECAST_BASE_URL="http://api.openweathermap.org/data/2.5/forecast/daily?";
 
                 final String QUERY_PARAM="q";
@@ -211,7 +217,7 @@ public class MainActivityFragment extends Fragment {
                         .appendQueryParameter(APPID_PARAM,appKey)
                         .build();
                 URL url=new URL(buildUri.toString());
-                Log.e(LOG_TAG,"Built URL"+buildUri.toString());
+
 
 
                 // Create the request to OpenWeatherMap, and open the connection
@@ -241,7 +247,7 @@ public class MainActivityFragment extends Fragment {
                     forecastJsonStr = null;
                 }
                 forecastJsonStr = buffer.toString();
-                Log.v("Forecast","JSON message" + forecastJsonStr);
+
             } catch (IOException e) {
                 Log.e("MainActivityFragment", "Error ", e);
                 // If the code didn't successfully get the weather data, there's no point in attempting
