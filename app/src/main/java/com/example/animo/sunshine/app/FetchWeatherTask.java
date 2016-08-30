@@ -228,6 +228,7 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
             if (cVVector.size() > 0) {
                 ContentValues[] cvArray = new ContentValues[cVVector.size()];
                 cVVector.toArray(cvArray);
+                inserted=mContext.getContentResolver().bulkInsert(WeatherEntry.CONTENT_URI,cvArray);
 
             }
 

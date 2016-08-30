@@ -14,24 +14,39 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements MainActivityFragment.Callback{
     private final String LOG_TAG=MainActivity.class.getSimpleName();
+    private static final String DETAILFRAGMENT_TAG = "DFTAG";
+
+    private String mLocation;
+    private boolean mTwoPane;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        mLocation=Utility.getPreferredLocation(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        /*FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
-        });
+        });*/
+        if(findViewById(R.id.weather_detail_container)!=null){
+            mTwoPane=true;
+            if(savedInstanceState==null){
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.weather_detail_container,new DetailActivityFragment(),DETAILFRAGMENT_TAG)
+                        .commit();
+            } else {
+                mTwoPane=false;
+            }
+        }
     }
 
     @Override
@@ -39,6 +54,23 @@ public class MainActivity extends AppCompatActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        String location=Utility.getPreferredLocation(this);
+        if(location!=null && !location.equals(mLocation)){
+            MainActivityFragment ff= (MainActivityFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_forecast);
+            if(null!=ff){
+                ff.onLocationChanged();
+            }
+            DetailActivityFragment df= (DetailActivityFragment) getSupportFragmentManager().findFragmentByTag(DETAILFRAGMENT_TAG);
+            if(null!=df){
+                df.onLocationChanged(location);
+            }
+            mLocation=location;
+        }
     }
 
     @Override
@@ -77,5 +109,24 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Log.d(LOG_TAG,"Couldn't Call "+location+" ,no receiving apps installed");
         }
+    }
+
+    @Override
+    public void onItemSelected(Uri dateUri) {
+        if(mTwoPane){
+            Bundle args=new Bundle();
+            args.putParcelable(DetailActivityFragment.DETAIL_URI,dateUri);
+
+            DetailActivityFragment fragment=new DetailActivityFragment();
+            fragment.setArguments(args);
+
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.weather_detail_container,fragment,DETAILFRAGMENT_TAG)
+                    .commit();
+        } else {
+            Intent intent=new Intent(this,DetailActivity.class).setData(dateUri);
+            startActivity(intent);
+        }
+
     }
 }
