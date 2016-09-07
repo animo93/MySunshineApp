@@ -29,14 +29,15 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        /*FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
-        });*/
+        });
+        Log.e(MainActivity.class.getSimpleName(), "mTwoPane start" );
         if(findViewById(R.id.weather_detail_container)!=null){
             mTwoPane=true;
             if(savedInstanceState==null){
@@ -46,7 +47,14 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
             } else {
                 mTwoPane=false;
             }
+            Log.e(MainActivity.class.getSimpleName(),"mTwoPane "+mTwoPane);
+
+            MainActivityFragment mainActivityFragment= (MainActivityFragment) getSupportFragmentManager()
+                    .findFragmentById(R.id.fragment_forecast);
+            mainActivityFragment.setUseTodayLayout(!mTwoPane);
+
         }
+        Log.e(MainActivity.class.getSimpleName(),"mTwoPane end");
     }
 
     @Override
