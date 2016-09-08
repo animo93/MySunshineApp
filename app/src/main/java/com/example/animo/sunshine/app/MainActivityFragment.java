@@ -203,6 +203,9 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
             mPosition=savedInstanceState.getInt(SELECTED_KEY);
         }
         mforecastAdapter.setUseTodayLayout(mUseTodayLayout);
+
+        //Call the forecast API
+        updateWeather();
         return rootView;
     }
 
