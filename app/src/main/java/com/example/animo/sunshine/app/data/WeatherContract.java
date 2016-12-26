@@ -88,7 +88,7 @@ public class WeatherContract {
     }
 
     /* Inner class that defines the table contents of the weather table */
-    public static final class WeatherEntry implements BaseColumns {
+    public static final class  WeatherEntry implements BaseColumns {
 
         public static final Uri CONTENT_URI =
                 BASE_CONTENT_URI.buildUpon().appendPath(PATH_WEATHER).build();

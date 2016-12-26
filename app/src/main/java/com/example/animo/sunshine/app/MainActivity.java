@@ -14,9 +14,19 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
+
+import com.example.animo.sunshine.app.gcm.RegistrationIntentService;
+import com.example.animo.sunshine.app.sync.SunshineSyncAdapter;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.firebase.FirebaseApp;
+
 public class MainActivity extends AppCompatActivity implements MainActivityFragment.Callback{
+    public static final  String SENT_TOKEN_TO_SERVER = "sentTokenToServer";
     private final String LOG_TAG=MainActivity.class.getSimpleName();
     private static final String DETAILFRAGMENT_TAG = "DFTAG";
+    private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
 
     private String mLocation;
     private boolean mTwoPane;
@@ -26,35 +36,64 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
         mLocation=Utility.getPreferredLocation(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+       /* Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = java.lang.String(FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
-        });
-        Log.e(MainActivity.class.getSimpleName(), "mTwoPane start" );
-        if(findViewById(R.id.weather_detail_container)!=null){
-            mTwoPane=true;
-            if(savedInstanceState==null){
+        });*/
+        Log.e(MainActivity.class.getSimpleName(), "mTwoPane start");
+        if(findViewById(R.id.weather_detail_container)!=null) {
+            mTwoPane = true;
+            if (savedInstanceState == null) {
                 getSupportFragmentManager().beginTransaction()
-                        .replace(R.id.weather_detail_container,new DetailActivityFragment(),DETAILFRAGMENT_TAG)
+                        .replace(R.id.weather_detail_container, new DetailActivityFragment(), DETAILFRAGMENT_TAG)
                         .commit();
-            } else {
-                mTwoPane=false;
             }
-            Log.e(MainActivity.class.getSimpleName(),"mTwoPane "+mTwoPane);
+        }else {
+            mTwoPane=false;
+            getSupportActionBar().setElevation(9f);
+        }
+        Log.e(MainActivity.class.getSimpleName(),"mTwoPane "+mTwoPane);
 
-            MainActivityFragment mainActivityFragment= (MainActivityFragment) getSupportFragmentManager()
-                    .findFragmentById(R.id.fragment_forecast);
-            mainActivityFragment.setUseTodayLayout(!mTwoPane);
+        MainActivityFragment mainActivityFragment= (MainActivityFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.fragment_forecast);
+        mainActivityFragment.setUseTodayLayout(!mTwoPane);
+        SunshineSyncAdapter.initializeSyncAdapter(this);
 
+        if(checkPlayServices()){
+            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+            boolean sentToken = sharedPreferences.getBoolean(SENT_TOKEN_TO_SERVER,false);
+            if(!sentToken) {
+                Intent intent = new Intent(this, RegistrationIntentService.class);
+                startService(intent);
+            }
         }
         Log.e(MainActivity.class.getSimpleName(),"mTwoPane end");
+    }
+
+    private boolean checkPlayServices() {
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        int resultCode = apiAvailability.isGooglePlayServicesAvailable(this);
+        if(resultCode != ConnectionResult.SUCCESS){
+            if(apiAvailability.isUserResolvableError(resultCode)) {
+                apiAvailability.getErrorDialog(this,
+                        resultCode,
+                        PLAY_SERVICES_RESOLUTION_REQUEST).show();
+            } else {
+                Log.i(LOG_TAG,"This device is not supported");
+                finish();
+            }
+            return false;
+        }
+        return true;
+
     }
 
     @Override

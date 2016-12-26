@@ -3,10 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.example.animo.sunshine.app.MainActivityFragment"
-    tools:showIn="@layout/activity_main"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin">
+    tools:showIn="@layout/activity_main">
 
 
     <ListView
@@ -14,7 +11,13 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/listview_forecast"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true" />
-     />
+        android:divider="@null" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:text="@string/empty_forecast_list"
+        android:id="@+id/listview_empty_forecast"
+        android:gravity="center_horizontal"/>
+
 </FrameLayout>

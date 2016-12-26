@@ -1,8 +1,14 @@
 package com.example.animo.sunshine.app;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.preference.PreferenceManager;
+import android.support.v4.app.FragmentActivity;
 import android.text.format.Time;
+
+import com.example.animo.sunshine.app.sync.SunshineSyncAdapter;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -28,14 +34,12 @@ public class Utility {
                 .equals(context.getString(R.string.pref_units_metric));
     }
 
-    static String formatTemperature(Context context,double temperature, boolean isMetric) {
-        double temp;
-        if ( !isMetric ) {
-            temp = 9*temperature/5+32;
-        } else {
-            temp = temperature;
+    public static String formatTemperature(Context context,double temperature) {
+        String suffix="\u00B0";
+        if(!isMetric(context)) {
+            temperature=(temperature*1.8)+32;
         }
-        return context.getString(R.string.format_temperature, temp);
+        return String.format(context.getString(R.string.format_temperature),temperature);
     }
 
     static String formatDate(long dateInMilliseconds) {
@@ -43,7 +47,8 @@ public class Utility {
         return DateFormat.getDateInstance().format(date);
     }
 
-    public static String getFriendlyDayString(Context context,long dateInMillis){
+    @SuppressLint("StringFormatMatches")
+    public static String getFriendlyDayString(Context context, long dateInMillis){
         Time time=new Time();
         time.setToNow();
         long currentTime=System.currentTimeMillis();
@@ -192,4 +197,55 @@ public class Utility {
         return -1;
     }
 
+    public static boolean isNetworkAvailable(Context context) {
+        ConnectivityManager conn = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo activeNetwork = conn.getActiveNetworkInfo();
+        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+    }
+
+    @SuppressWarnings("WrongConstant")
+    static public @SunshineSyncAdapter.LocationStatus
+    int getLocationStatus(Context c) {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(c);
+        return sharedPreferences.getInt(c.getString(R.string.pref_location_status_key   ),SunshineSyncAdapter.LOCATION_STATUS_UNKNOWN);
+    }
+
+    public static void resetLocationStatus(Context c) {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(c);
+        SharedPreferences.Editor spe= sp.edit();
+        spe.putInt(c.getString(R.string.pref_location_status_key),SunshineSyncAdapter.LOCATION_STATUS_UNKNOWN);
+        spe.apply();
+    }
+
+    @SuppressLint("StringFormatInvalid")
+    public static String getArtUrlForWeatherCondition(Context context, int weatherId){
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        String formatArtUrl = preferences.getString(context.getString(R.string.pref_art_pack_key),
+                context.getString(R.string.pref_art_pack_sunshine));
+        if (weatherId >= 200 && weatherId <= 232) {
+            return context.getString(R.string.format_art_url,"storm");
+        } else if (weatherId >= 300 && weatherId <= 321) {
+            return context.getString(R.string.format_art_url,"light_rain");
+        } else if (weatherId >= 500 && weatherId <= 504) {
+            return context.getString(R.string.format_art_url,"rain");
+        } else if (weatherId == 511) {
+            return context.getString(R.string.format_art_url,"snow");
+        } else if (weatherId >= 520 && weatherId <= 531) {
+            return context.getString(R.string.format_art_url,"rain");
+        } else if (weatherId >= 600 && weatherId <= 622) {
+            return context.getString(R.string.format_art_url,"snow");
+        } else if (weatherId >= 701 && weatherId <= 761) {
+            return context.getString(R.string.format_art_url,"fog");
+        } else if (weatherId == 761 || weatherId == 781) {
+            return context.getString(R.string.format_art_url,"storm");
+        } else if (weatherId == 800) {
+            return context.getString(R.string.format_art_url,"clear");
+        } else if (weatherId == 801) {
+            return context.getString(R.string.format_art_url,"light_clouds");
+        } else if (weatherId >= 802 && weatherId <= 804) {
+            return context.getString(R.string.format_art_url,"clouds");
+        }
+        return null;
+    }
 }

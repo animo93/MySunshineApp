@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.example.animo.sunshine.app.data.WeatherContract;
 
 /**
@@ -110,20 +111,30 @@ public class ForecastAdapter extends CursorAdapter {
         /*viewHolder.iconView.setImageResource(R.mipmap.ic_launcher);*/
 
         int viewType=getItemViewType(cursor.getPosition());
+        int weatherId= MainActivityFragment.COL_WEATHER_CONDITION_ID;
+        int fallbackId=0;
         switch (viewType) {
             case VIEW_TYPE_TODAY:{
-                viewHolder.iconView.setImageResource(Utility.getArtResourceForWeatherCondition(
+                /*viewHolder.iconView.setImageResource(Utility.getArtResourceForWeatherCondition(
                         cursor.getInt(MainActivityFragment.COL_WEATHER_CONDITION_ID)
-                ));
+                )*/
+                fallbackId=Utility.getArtResourceForWeatherCondition(weatherId);
                 break;
             }
             case VIEW_TYPE_FUTURE_DAY:{
-                viewHolder.iconView.setImageResource(Utility.getIconResourceForWeatherCondition(
+                /*viewHolder.iconView.setImageResource(Utility.getIconResourceForWeatherCondition(
                         cursor.getInt(MainActivityFragment.COL_WEATHER_CONDITION_ID)
-                ));
+                )*/
+                fallbackId=Utility.getArtResourceForWeatherCondition(weatherId);
                 break;
             }
         }
+
+        Glide.with(mContext)
+                .load(Utility.getArtUrlForWeatherCondition(mContext,weatherId))
+                .error(fallbackId)
+                .crossFade()
+                .into(viewHolder.iconView);
 
         long dateMillis=cursor.getLong(MainActivityFragment.COL_WEATHER_DATE);
         /*TextView dateView= (TextView) view.findViewById(R.id.list_item_date_textview);
@@ -134,18 +145,23 @@ public class ForecastAdapter extends CursorAdapter {
        /* TextView descriptionView= (TextView) view.findViewById(R.id.list_item_forecast_textview);
         descriptionView.setText(description);*/
         viewHolder.descriptionView.setText(description);
+        viewHolder.descriptionView.setContentDescription(context.getString(R.string.a11y_forecast,description));
 
         boolean isMetric=Utility.isMetric(context);
 
-        double high=cursor.getDouble(MainActivityFragment.COL_WEATHER_MAX_TEMP);
+        String high = Utility.formatTemperature(context,cursor.getDouble(MainActivityFragment.COL_WEATHER_MAX_TEMP));
+        //double high=cursor.getDouble(MainActivityFragment.COL_WEATHER_MAX_TEMP);
         /*TextView highText= (TextView) view.findViewById(R.id.list_item_high_textview);
         highText.setText(Utility.formatTemperature(high,isMetric));*/
-        viewHolder.highTempView.setText(Utility.formatTemperature(context,high,isMetric));
+        viewHolder.highTempView.setText(high);
+        viewHolder.highTempView.setContentDescription(context.getString(R.string.a11y_high_temp,high));
 
-        double low=cursor.getDouble(MainActivityFragment.COL_WEATHER_MIN_TEMP);
+        String low = Utility.formatTemperature(context,cursor.getDouble(MainActivityFragment.COL_WEATHER_MIN_TEMP));
+        //double low=cursor.getDouble(MainActivityFragment.COL_WEATHER_MIN_TEMP);
         /*TextView lowView= (TextView) view.findViewById(R.id.list_item_low_textview);
         lowView.setText(Utility.formatTemperature(low,isMetric));*/
-        viewHolder.lowTempView.setText(Utility.formatTemperature(context,low,isMetric));
+        viewHolder.lowTempView.setText(low);
+        viewHolder.lowTempView.setContentDescription(context.getString(R.string.a11y_low_temp,low));
 
     }
 

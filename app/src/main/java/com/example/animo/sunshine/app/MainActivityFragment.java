@@ -1,5 +1,8 @@
 package com.example.animo.sunshine.app;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -22,9 +25,12 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.animo.sunshine.app.data.WeatherContract;
+import com.example.animo.sunshine.app.service.SunshineService;
+import com.example.animo.sunshine.app.sync.SunshineSyncAdapter;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -44,7 +50,8 @@ import java.util.List;
 /**
  * A placeholder fragment containing a simple view.
  */
-public class MainActivityFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>{
+public class MainActivityFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>, SharedPreferences.OnSharedPreferenceChangeListener{
+    public static final String LOG_TAG=MainActivityFragment.class.getSimpleName();
     private ForecastAdapter mforecastAdapter;
     private ListView mListView;
     private int mPosition=ListView.INVALID_POSITION;
@@ -78,13 +85,37 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     // must change.
     static final int COL_WEATHER_ID = 0;
     static final int COL_WEATHER_DATE = 1;
+
+    @Override
+    public void onResume() {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+        super.onResume();
+    }
+
     static final int COL_WEATHER_DESC = 2;
     static final int COL_WEATHER_MAX_TEMP = 3;
+
+    @Override
+    public void onPause() {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
+        super.onPause();
+    }
+
     static final int COL_WEATHER_MIN_TEMP = 4;
     static final int COL_LOCATION_SETTING = 5;
     static final int COL_WEATHER_CONDITION_ID = 6;
     static final int COL_COORD_LAT = 7;
     static final int COL_COORD_LONG = 8;
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if(key.equals(getString(R.string.pref_location_status_key))) {
+            updateEmptyView();
+
+        }
+    }
     //private ForecastAdapter adapter;
 
     public interface Callback {
@@ -113,8 +144,8 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
 
     public boolean onOptionsItemSelected(MenuItem item) {
         int id=item.getItemId();
-        if(id==R.id.action_refresh) {
-            updateWeather();
+        if(id==R.id.action_map) {
+            openPreferredLocationInMap();
             return  true;
         }
         return super.onOptionsItemSelected(item);
@@ -125,14 +156,46 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
         getLoaderManager().restartLoader(FORECAST_LOADER,null,this);
     }
 
+    private void openPreferredLocationInMap() {
+        // Using the URI scheme for showing a location found on a map.  This super-handy
+        // intent can is detailed in the "Common Intents" page of Android's developer site:
+        // http://developer.android.com/guide/components/intents-common.html#Maps
+        if ( null != mforecastAdapter ) {
+            Cursor c = mforecastAdapter.getCursor();
+            if ( null != c ) {
+                c.moveToPosition(0);
+                String posLat = c.getString(COL_COORD_LAT);
+                String posLong = c.getString(COL_COORD_LONG);
+                Uri geoLocation = Uri.parse("geo:" + posLat + "," + posLong);
+
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(geoLocation);
+
+                if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
+                    startActivity(intent);
+                } else {
+                    Log.d(LOG_TAG, "Couldn't call " + geoLocation.toString() + ", no receiving apps installed!");
+                }
+            }
+
+        }
+    }
+
     public void updateWeather() {
-//        FetchWeatherTask fetchWeatherTask=new FetchWeatherTask();
-        FetchWeatherTask fetchWeatherTask=new FetchWeatherTask(getActivity());
-       /* SharedPreferences preferences= PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String location=preferences.getString(getString(R.string.pref_location_key),
-                getString(R.string.pref_location_default));*/
+        /*FetchWeatherTask fetchWeatherTask=new FetchWeatherTask(getActivity());
         String location=Utility.getPreferredLocation(getActivity());
-        fetchWeatherTask.execute(location);
+        fetchWeatherTask.execute(location);*/
+        /*Intent intent=new Intent(getActivity(), SunshineService.class);
+        intent.putExtra(SunshineService.LOCATION_QUERY_EXTRA,Utility.getPreferredLocation(getActivity()));
+        getActivity().startService(intent);*/
+       /* Intent alarmIntent =new Intent(getActivity(),SunshineService.AlarmReceiver.class);
+        alarmIntent.putExtra(SunshineService.LOCATION_QUERY_EXTRA, Utility.getPreferredLocation(getActivity()));
+        PendingIntent pendingIntent=PendingIntent.getBroadcast(getActivity(),0,alarmIntent,PendingIntent.FLAG_ONE_SHOT);
+
+        AlarmManager alarmManager= (AlarmManager) getActivity().getSystemService(Context.ALARM_SERVICE);
+        alarmManager.set(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+5000,pendingIntent);*/
+
+        SunshineSyncAdapter.syncImmediately(getActivity());
 
     }
 
@@ -169,17 +232,9 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
         mforecastAdapter=new ForecastAdapter(getActivity(),null,0);
 
         mListView= (ListView) rootView.findViewById(R.id.listview_forecast);
+        View emptyView = rootView.findViewById(R.id.listview_empty_forecast);
+        mListView.setEmptyView(emptyView);
         mListView.setAdapter(mforecastAdapter);
-/*        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String forecast=adapter.getItem(position);
-                Log.e(MainActivityFragment.class.getSimpleName(),forecast);
-                Intent intent=new Intent(getActivity(),DetailActivity.class)
-                        .putExtra(Intent.EXTRA_TEXT,forecast);
-                startActivity(intent);
-            }
-        });*/
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -229,7 +284,35 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
         if(mPosition!=ListView.INVALID_POSITION){
             mListView.smoothScrollToPosition(mPosition);
         }
+        updateEmptyView();
 
+    }
+
+    private void updateEmptyView() {
+        if(mforecastAdapter.getCount()==0) {
+            TextView textView = (TextView) getView().findViewById(R.id.listview_empty_forecast);
+            if(null!= textView){
+                int message=R.string.empty_forecast_list;
+
+                @SunshineSyncAdapter.LocationStatus int location= Utility.getLocationStatus(getActivity());
+                switch (location) {
+                    case SunshineSyncAdapter.LOCATION_STATUS_SERVER_DOWN:
+                        message=R.string.empty_forecast_list_server_down;
+                        break;
+                    case SunshineSyncAdapter.LOCATION_STATUS_SERVER_INVALID:
+                        message=R.string.empty_forecast_list_server_error;
+                        break;
+                    case SunshineSyncAdapter.LOCATION_STATUS_INVALID:
+                        message=R.string.empty_forecast_list_invalid_location;
+                        break;
+                    default:
+                        if(!Utility.isNetworkAvailable(getActivity())) {
+                            message = R.string.empty_forecast_list_no_network;
+                        }
+                }
+                textView.setText(message);
+            }
+        }
     }
 
     @Override
@@ -244,176 +327,4 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
             mforecastAdapter.setUseTodayLayout(mUseTodayLayout);
         }
     }
-/*    public class FetchWeatherTask extends AsyncTask<String,Void,String[]>{
-
-        private final String LOG_TAG =FetchWeatherTask.class.getSimpleName();
-
-        @Override
-        protected void onPostExecute(String[] strings) {
-            super.onPostExecute(strings);
-            if(strings!=null)
-                adapter.clear();
-            for(String s:strings)
-                adapter.add(s);
-        }
-
-        private String getReadableString(long time){
-            SimpleDateFormat shortenedDateFormat=new SimpleDateFormat("EEE MMM dd");
-            return shortenedDateFormat.format(time);
-        }
-
-        private String formatHighLows(double high,double low,String unitType){
-            if(unitType.equals(getString(R.string.pref_units_imperial))){
-                high=(high*1.8)+32;
-                low=(low*1.8)+32;
-            }else if(!unitType.equals(R.string.pref_units_metric)){
-                Log.e(LOG_TAG,"Unit type not found "+unitType);
-            }
-            long roundedHigh=Math.round(high);
-            long roundedLow=Math.round(low);
-            String highLowStr=roundedHigh+"/"+roundedLow;
-            return highLowStr;
-        }
-
-        private String[] getWeatherDataFromJson(String forecastJsonStr,int numDays) throws JSONException {
-            final String OWM_LIST = "list";
-            final String OWM_WEATHER = "weather";
-            final String OWM_TEMPERATURE = "temp";
-            final String OWM_MAX = "max";
-            final String OWM_MIN = "min";
-            final String OWM_DESCRIPTION = "main";
-
-            JSONObject forecastJson=new JSONObject(forecastJsonStr);
-            JSONArray weatherArray=forecastJson.getJSONArray(OWM_LIST);
-
-            Time dayTime=new Time();
-            dayTime.setToNow();
-
-            int julianStartDay=Time.getJulianDay(System.currentTimeMillis(),dayTime.gmtoff);
-
-            dayTime=new Time();
-
-            String[] resultStr=new String[numDays];
-            SharedPreferences preferences=PreferenceManager.getDefaultSharedPreferences(getActivity());
-            String unitType=preferences.getString(
-                    getString(R.string.pref_units_key),
-                    getString(R.string.pref_units_metric));
-            for(int i=0;i<weatherArray.length();i++){
-                String day;
-                String description;
-                String highAndLow;
-
-                JSONObject dayForecast=weatherArray.getJSONObject(i);
-                long dateTime;
-                dateTime=dayTime.setJulianDay(julianStartDay + i);
-                day=getReadableString(dateTime);
-
-                JSONObject weatherObject=dayForecast.getJSONArray(OWM_WEATHER).getJSONObject(0);
-                description=weatherObject.getString(OWM_DESCRIPTION);
-
-                JSONObject temperatureObject=dayForecast.getJSONObject(OWM_TEMPERATURE);
-                double high=temperatureObject.getDouble(OWM_MAX);
-                double low=temperatureObject.getDouble(OWM_MIN);
-
-                highAndLow=formatHighLows(high,low,unitType);
-                resultStr[i]=day+" - "+description+" - "+highAndLow;
-            }
-            return resultStr;
-        }
-
-
-        @Override
-        protected String[] doInBackground(String[] params) {
-            // These two need to be declared outside the try/catch
-// so that they can be closed in the finally block.
-            if(params.length==0)
-                return null;
-            HttpURLConnection urlConnection = null;
-            BufferedReader reader = null;
-            String format="json";
-            String units="metric";
-            int numDays=7;
-            String appKey="e6e6e3ac01ec95be41fb344a0af6e4e8";
-
-// Will contain the raw JSON response as a string.
-            String forecastJsonStr = null;
-
-            try {
-                // Construct the URL for the OpenWeatherMap query
-                // Possible parameters are available at OWM's forecast API page, at
-                // http://openweathermap.org/API#forecast
-                // URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=94043&mode=json&units=metric&cnt=7&appid=e6e6e3ac01ec95be41fb344a0af6e4e8");
-                final String FORECAST_BASE_URL="http://api.openweathermap.org/data/2.5/forecast/daily?";
-
-                final String QUERY_PARAM="q";
-                final String FORMAT_PARAM="mode";
-                final String UNITS_PARAM="units";
-                final String DAYS_PARAM="cnt";
-                final String APPID_PARAM="appid";
-
-                Uri buildUri=Uri.parse(FORECAST_BASE_URL).buildUpon()
-                        .appendQueryParameter(QUERY_PARAM,params[0])
-                        .appendQueryParameter(FORMAT_PARAM,format)
-                        .appendQueryParameter(UNITS_PARAM,units)
-                        .appendQueryParameter(DAYS_PARAM,Integer.toString(numDays))
-                        .appendQueryParameter(APPID_PARAM,appKey)
-                        .build();
-                URL url=new URL(buildUri.toString());
-
-
-
-                // Create the request to OpenWeatherMap, and open the connection
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                urlConnection.connect();
-
-                // Read the input stream into a String
-                InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
-                if (inputStream == null) {
-                    // Nothing to do.
-                    forecastJsonStr = null;
-                }
-                reader = new BufferedReader(new InputStreamReader(inputStream));
-
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
-                    // But it does make debugging a *lot* easier if you print out the completed
-                    // buffer for debugging.
-                    buffer.append(line + "\n");
-                }
-
-                if (buffer.length() == 0) {
-                    // Stream was empty.  No point in parsing.
-                    forecastJsonStr = null;
-                }
-                forecastJsonStr = buffer.toString();
-
-            } catch (IOException e) {
-                Log.e("MainActivityFragment", "Error ", e);
-                // If the code didn't successfully get the weather data, there's no point in attempting
-                // to parse it.
-                forecastJsonStr = null;
-            } finally{
-                if (urlConnection != null) {
-                    urlConnection.disconnect();
-                }
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (final IOException e) {
-                        Log.e("MainActivityFragment", "Error closing stream", e);
-                    }
-                }
-            }
-            try {
-                return getWeatherDataFromJson(forecastJsonStr,numDays);
-            } catch (JSONException e) {
-                Log.e(LOG_TAG,e.getMessage(),e);
-                e.printStackTrace();
-            }
-            return null;
-        }
-    }*/
 }

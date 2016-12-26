@@ -23,7 +23,7 @@
     
     <string name="today">Today</string>
     <string name="tomorrow">Tomorrow</string>
-    <string name="format_full_friendly_date"><xliff:g id="day">%1$s</xliff:g>, <xliff:g id="date">%2$s</xliff:g></string>
+    <string name="format_full_friendly_date"><xliff:g id="month">%1$s</xliff:g>, <xliff:g id="day">%2$s</xliff:g></string>
     <string name="format_temperature"><xliff:g id="temp">%1.0f</xliff:g>\u00B0</string>
     <!-- Windspeed formats -->
     <!-- Wind in mph [CHAR LIMIT=25] -->
@@ -36,5 +36,57 @@
 
     <!-- Humidity format CHAR LIMIT=25]-->
     <string name="format_humidity">Humidity: <xliff:g id="humidity">%1.0f</xliff:g> %%</string>
+
+    <string name="sync_account_type">sunshine.example.com</string>
+    <string name="content_authority">com.example.animo.sunshine.app</string>
+
+    <!-- Notification Format -->
+    <string name="format_notification">Forecast: <xliff:g id="condition">%1$s</xliff:g> High: <xliff:g id="high">%2$s</xliff:g> Low: <xliff:g id="low">%3$s</xliff:g></string>
+
+    <!-- Strings related to Notification preference -->
+    <string name="pref_last_notification">last_notification</string>>
+    <!-- Strings related to Notification Enabled preference -->
+    <string name="pref_enable_notifications_key" translatable="false">enable_notifications</string>
+    <string name="pref_enable_notifications_label">Weather Notifications</string>
+
+    <string name="pref_enable_notifications_true">Enabled</string>
+    <string name="pref_enable_notifications_false">Not Enabled</string>
+    <string name="pref_enable_notifications_default" translatable="false">true</string>
+    
+    <string name="empty_forecast_list">No Weather Information Available</string>
+    <string name="empty_forecast_list_no_network">No weather Information Available.The Network is not available to fetch data</string>
+    <string name="pref_location_status_key">loc-status</string>
+    <string name="empty_forecast_list_server_down">No weather data available.Server is not sending data</string>
+    <string name="empty_forecast_list_server_error">No information available.The server is not returning valid data.Please check for an updated version</string>
+    <string name="empty_forecast_list_invalid_location">No weather found.The location given is not valid</string>
+    <string name="pref_location_unknown_description">Validating Location ...(<xliff:g id="location_setting">%1$s</xliff:g>)"</string>
+    <string name="pref_location_error_description">Invalid Location (<xliff:g id="location_setting">%1$s</xliff:g>)"</string>
+
+    <!-- A11y -->
+    <string name="a11y_forecast">Forecast: <xliff:g id="condition">%1$s</xliff:g></string>
+    <string name="a11y_forecast_icon">Forecast icon: <xliff:g id="condition">%1$s</xliff:g></string>
+    <string name="a11y_high_temp">High: <xliff:g id="high">%1$s</xliff:g></string>
+    <string name="a11y_low_temp">Low: <xliff:g id="low">%1$s</xliff:g></string>
+    <string name="format_art_url">https://raw.githubusercontent.com/udacity/Sunshine-Version-2/sunshine_master/app/src/main/res/drawable-xxhdpi/art_<xliff:g id="description">%s</xliff:g>.png</string>
+
+    <!-- Label for the art pack preference [CHAR LIMIT=30] -->
+    <string name="pref_art_pack_label">Icon Pack</string>
+
+    <!-- Label for Sunshine option in art pack preference [CHAR LIMIT=25] -->
+    <string name="pref_art_pack_label_sunshine">Sunshine</string>
+
+    <!-- Label for cute dogs option in art pack preference [CHAR LIMIT=25] -->
+    <string name="pref_art_pack_label_cute_dogs">Cute dogs</string>
+
+    <!-- Key name for art pack unit preference in SharedPreferences [CHAR LIMIT=NONE] -->
+    <string name="pref_art_pack_key" translatable="false">art_pack</string>
+
+    <!-- Value in SharedPreferences for Sunshine art pack option [CHAR LIMIT=NONE] -->
+    <string name="pref_art_pack_sunshine" translatable="false">https://raw.githubusercontent.com/udacity/Sunshine-Version-2/sunshine_master/app/src/main/res/drawable-xxhdpi/art_%s.png</string>
+
+    <!-- Value in SharedPreferences for cute dogs art pack  option [CHAR LIMIT=NONE] -->
+    <string name="pref_art_pack_cute_dogs" translatable="false">https://raw.githubusercontent.com/udacity/Sunshine-Version-2/sunshine_master/app/src/main/res/drawable-mdpi/art_%s.png</string>
+    <string name="gcm_weather_alert">Heads up: %1$s in %2$s!</string>
+
 
 </resources>

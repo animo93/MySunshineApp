@@ -9,12 +9,13 @@
     tools:layout="@layout/fragment_detail" />-->
 
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-xmlns:app="http://schemas.android.com/apk/res-auto"
-xmlns:tools="http://schemas.android.com/tools"
-android:id="@+id/weather_detail_container"
-android:layout_width="match_parent"
-android:layout_height="match_parent"
-tools:context="com.example.animo.sunshine.app.DetailActivity"
-tools:ignore="MergeRootFrame" >
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/weather_detail_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.animo.sunshine.app.DetailActivity"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:ignore="MergeRootFrame" >
 
 </FrameLayout>
