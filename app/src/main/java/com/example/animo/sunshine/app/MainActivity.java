@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -47,6 +49,9 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
                         .setAction("Action", null).show();
             }
         });*/
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
         Log.e(MainActivity.class.getSimpleName(), "mTwoPane start");
         if(findViewById(R.id.weather_detail_container)!=null) {
             mTwoPane = true;
@@ -57,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
             }
         }else {
             mTwoPane=false;
-            getSupportActionBar().setElevation(9f);
+            //getSupportActionBar().setElevation(9f);
         }
         Log.e(MainActivity.class.getSimpleName(),"mTwoPane "+mTwoPane);
 
@@ -173,6 +178,10 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
         } else {
             Intent intent=new Intent(this,DetailActivity.class).setData(dateUri);
             startActivity(intent);
+
+            ActivityOptionsCompat activityOptionsCompat =
+                    ActivityOptionsCompat.makeSceneTransitionAnimation(this);
+            ActivityCompat.startActivity(this,intent,activityOptionsCompat.toBundle());
         }
 
     }

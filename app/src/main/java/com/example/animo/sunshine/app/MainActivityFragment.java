@@ -1,20 +1,19 @@
 package com.example.animo.sunshine.app;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
-import android.content.Context;
+import android.annotation.TargetApi;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
-import android.os.Bundle;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
-import android.text.format.Time;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -22,30 +21,11 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.animo.sunshine.app.data.WeatherContract;
-import com.example.animo.sunshine.app.service.SunshineService;
 import com.example.animo.sunshine.app.sync.SunshineSyncAdapter;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -53,8 +33,10 @@ import java.util.List;
 public class MainActivityFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>, SharedPreferences.OnSharedPreferenceChangeListener{
     public static final String LOG_TAG=MainActivityFragment.class.getSimpleName();
     private ForecastAdapter mforecastAdapter;
-    private ListView mListView;
-    private int mPosition=ListView.INVALID_POSITION;
+    /*private ListView mListView;
+    private int mPosition=ListView.INVALID_POSITION;*/
+    private RecyclerView mRecyclerView;
+    private int mPosition = RecyclerView.NO_POSITION;
     private boolean mUseTodayLayout;
 
     private static final String SELECTED_KEY="selected_position";
@@ -136,7 +118,7 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        if(mPosition!=ListView.INVALID_POSITION){
+        if(mPosition!=RecyclerView.NO_POSITION){
             outState.putInt(SELECTED_KEY,mPosition);
         }
         super.onSaveInstanceState(outState);
@@ -182,18 +164,6 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     }
 
     public void updateWeather() {
-        /*FetchWeatherTask fetchWeatherTask=new FetchWeatherTask(getActivity());
-        String location=Utility.getPreferredLocation(getActivity());
-        fetchWeatherTask.execute(location);*/
-        /*Intent intent=new Intent(getActivity(), SunshineService.class);
-        intent.putExtra(SunshineService.LOCATION_QUERY_EXTRA,Utility.getPreferredLocation(getActivity()));
-        getActivity().startService(intent);*/
-       /* Intent alarmIntent =new Intent(getActivity(),SunshineService.AlarmReceiver.class);
-        alarmIntent.putExtra(SunshineService.LOCATION_QUERY_EXTRA, Utility.getPreferredLocation(getActivity()));
-        PendingIntent pendingIntent=PendingIntent.getBroadcast(getActivity(),0,alarmIntent,PendingIntent.FLAG_ONE_SHOT);
-
-        AlarmManager alarmManager= (AlarmManager) getActivity().getSystemService(Context.ALARM_SERVICE);
-        alarmManager.set(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+5000,pendingIntent);*/
 
         SunshineSyncAdapter.syncImmediately(getActivity());
 
@@ -212,48 +182,58 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (null!=mRecyclerView) {
+            mRecyclerView.clearOnScrollListeners();
+        }
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView=inflater.inflate(R.layout.fragment_main, container, false);
-       /* String locationSetting=Utility.getPreferredLocation(getActivity());
-        // String []forecastArray={"Today-sunny-88/63","Tomorrow-Foggy-70/46","Weds-cloudy-70/66","Thurs-rainy-64/51"};
-        *//*adapter=new ArrayAdapter<String>(
-                getActivity(),
-                R.layout.list_item_forecast,
-                R.id.list_item_forecast_textview,
-                new ArrayList<String>());*//*
-        String sortOrder= WeatherContract.WeatherEntry.COLUMN_DATE+" ASC";
-        Uri weatherForLocationUri=WeatherContract.WeatherEntry.buildWeatherLocationWithStartDate(
-                locationSetting, System.currentTimeMillis()
-        );
-        Cursor cur=getActivity().getContentResolver().query(weatherForLocationUri,
-                null,null,null,sortOrder);
-        adapter=new ForecastAdapter(getActivity(),cur,0);*/
-        mforecastAdapter=new ForecastAdapter(getActivity(),null,0);
 
-        mListView= (ListView) rootView.findViewById(R.id.listview_forecast);
-        View emptyView = rootView.findViewById(R.id.listview_empty_forecast);
-        mListView.setEmptyView(emptyView);
-        mListView.setAdapter(mforecastAdapter);
-        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        mRecyclerView = (RecyclerView) rootView.findViewById(R.id.recyclerview_forecast);
+
+        // Set the layout manager
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        View emptyView = rootView.findViewById(R.id.recyclerview_forecast_empty);
+        mRecyclerView.setHasFixedSize(true);
+
+        mforecastAdapter= new ForecastAdapter(getActivity(), new ForecastAdapter.ForecastAdapterOnClickHandler() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Cursor cursor= (Cursor) parent.getItemAtPosition(position);
-                if(cursor!= null){
-                    String locationSetting=Utility.getPreferredLocation(getActivity());
-                    /*Intent intent=new Intent(getActivity(),DetailActivity.class)
-                            .setData(WeatherContract.WeatherEntry.buildWeatherLocationWithDate(
-                                    locationSetting,cursor.getLong(COL_WEATHER_DATE)
-                            ));*/
-                    ((Callback)getActivity())
-                            .onItemSelected(WeatherContract.WeatherEntry.buildWeatherLocationWithDate(
-                                    locationSetting,cursor.getLong(COL_WEATHER_DATE)
-                            ));
-//                    startActivity(intent);
-                }
-                mPosition=position;
+            public void onClick(Long date, ForecastAdapter.ForecastAdapterViewHolder vh) {
+                String locationSetting = Utility.getPreferredLocation(getActivity());
+                ((Callback)getActivity())
+                        .onItemSelected(WeatherContract.WeatherEntry.buildWeatherLocationWithDate(
+                                locationSetting,date
+                        ));
+                mPosition = vh.getAdapterPosition();
             }
-        });
+        } , emptyView);
+//        View emptyView = rootView.findViewById(R.id.recyclerview_forecast_empty);
+        mRecyclerView.setAdapter(mforecastAdapter);
+
+        final View parallaxView = rootView.findViewById(R.id.parallax_bar);
+        if (null != parallaxView) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+                    @Override
+                    public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                        super.onScrolled(recyclerView, dx, dy);
+                        int max = parallaxView.getHeight();
+                        if (dy > 0) {
+                            parallaxView.setTranslationY(Math.max(-max, parallaxView.getTranslationY() - dy / 2));
+                        } else {
+                            parallaxView.setTranslationY(Math.min(0, parallaxView.getTranslationY() - dy / 2));
+                        }
+                    }
+                });
+            }
+        }
+
         if(savedInstanceState!=null && savedInstanceState.containsKey(SELECTED_KEY)){
             mPosition=savedInstanceState.getInt(SELECTED_KEY);
         }
@@ -282,15 +262,15 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
         mforecastAdapter.swapCursor(cursor);
         if(mPosition!=ListView.INVALID_POSITION){
-            mListView.smoothScrollToPosition(mPosition);
+            mRecyclerView.smoothScrollToPosition(mPosition);
         }
         updateEmptyView();
 
     }
 
     private void updateEmptyView() {
-        if(mforecastAdapter.getCount()==0) {
-            TextView textView = (TextView) getView().findViewById(R.id.listview_empty_forecast);
+        if(mforecastAdapter.getItemCount()==0) {
+            TextView textView = (TextView) getView().findViewById(R.id.recyclerview_forecast_empty);
             if(null!= textView){
                 int message=R.string.empty_forecast_list;
 

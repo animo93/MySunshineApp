@@ -44,7 +44,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
             if (senderId.equals(remoteMessage.getFrom())) {
                 try {
-                    JSONObject jsonObject = new JSONObject(remoteMessage.getData().get(EXTRA_DATA));
+                    Log.e(TAG,"remoteMessage "+remoteMessage.getData());
+                    JSONObject jsonObject = new JSONObject(remoteMessage.getData());
                     String weather = jsonObject.getString(EXTRA_WEATHER);
                     String location = jsonObject.getString(EXTRA_LOCATION);
                     String alert = String.format(getString(R.string.gcm_weather_alert),

@@ -19,18 +19,6 @@ public class DetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_detail);
         if(savedInstanceState==null){
             Log.e("DetailActivity","inside onCreate");
-            Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-            setSupportActionBar(toolbar);
-
-            FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-            fab.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                            .setAction("Action", null).show();
-                }
-            });
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             Bundle arguments=new Bundle();
             arguments.putParcelable(DetailActivityFragment.DETAIL_URI, getIntent().getData());
             DetailActivityFragment fragment=new DetailActivityFragment();
@@ -44,19 +32,4 @@ public class DetailActivity extends AppCompatActivity {
         }
 
     }
-
-    public boolean onCreateOptionsMenu(Menu menu){
-        getMenuInflater().inflate(R.menu.detail, menu);
-        return true;
-    }
-
-    public boolean onOptionsItemSelected(MenuItem item){
-        int id=item.getItemId();
-        if(id==R.id.action_settings) {
-            startActivity(new Intent(this,SettingsActivity.class));
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
 }
