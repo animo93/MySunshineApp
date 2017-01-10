@@ -58,6 +58,8 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
     public static final int SYNC_FLEXTIME=SYNC_INTERVAL/3;
     public static final long DAY_IN_MILLIS=1000*60*60*24;
     public static final int WEATHER_NOTIFICATION_ID=3004;
+    public static final String ACTION_DATA_UPDATED =
+            "com.example.animo.sunshine.app.ACTION_DATA_UPDATED";
 
     private final String[] NOTIFY_WEATHER_PROJECTION=new String[]{
             WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
@@ -90,7 +92,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
     @Override
     public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider, SyncResult syncResult) {
         Log.d(Log_tag, "onPerformSync called");
-        String locationQuery= Utility.getPreferredLocation(getContext());
+        //String locationQuery= Utility.getPreferredLocation(getContext());
         HttpURLConnection urlConnection=null;
         BufferedReader reader=null;
         String forecastJsonStr=null;
@@ -98,6 +100,11 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
         String units="metrics";
         int numDays=14;
         String appKey="e6e6e3ac01ec95be41fb344a0af6e4e8";
+
+        Context context = getContext();
+        String locationQuery = Utility.getPreferredLocation(context);
+        String locationLatitude = String.valueOf(Utility.getLocationLatitude(context));
+        String locationLongitude = String.valueOf(Utility.getLocationLongitude(context));
         try{
             final String FORECAST_BASE_URL="http://api.openweathermap.org/data/2.5/forecast/daily?";
             final String QUERY_PARAM = "q";
@@ -105,14 +112,32 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
             final String UNITS_PARAM = "units";
             final String DAYS_PARAM = "cnt";
             final String APPID_PARAM="appid";
+            final String LON_PARAM = "lon";
+            final String LAT_PARAM = "lat";
 
-            Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
+            /*Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
                     .appendQueryParameter(QUERY_PARAM, locationQuery)
                     .appendQueryParameter(FORMAT_PARAM, format)
                     .appendQueryParameter(UNITS_PARAM, units)
                     .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
                     .appendQueryParameter(APPID_PARAM,appKey)
+                    .build();*/
+            Uri.Builder uriBuilder = Uri.parse(FORECAST_BASE_URL).buildUpon();
+
+            if(Utility.isLocationLatLonAvailable(context)) {
+                uriBuilder.appendQueryParameter(LAT_PARAM,locationLatitude)
+                        .appendQueryParameter(LON_PARAM,locationLongitude);
+            } else {
+                uriBuilder.appendQueryParameter(QUERY_PARAM,locationQuery);
+            }
+
+            Uri builtUri = uriBuilder.appendQueryParameter(FORMAT_PARAM, format)
+                    .appendQueryParameter(UNITS_PARAM, units)
+                    .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
+                    .appendQueryParameter(APPID_PARAM,appKey)
                     .build();
+
+
             URL url = new URL(builtUri.toString());
             urlConnection = (HttpURLConnection) url.openConnection();
             urlConnection.setRequestMethod("GET");
@@ -303,6 +328,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
                 getContext().getContentResolver().delete(WeatherContract.WeatherEntry.CONTENT_URI,
                         WeatherContract.WeatherEntry.COLUMN_DATE + " <= ?",
                         new String[]{Long.toString(dayTime.setJulianDay(julianStartDay-1))});
+                updateWidgets();
                 notifyWeather();
 
             }
@@ -314,6 +340,13 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
             Log.e(Log_tag, e.getMessage(), e);
             e.printStackTrace();
         }
+    }
+
+    private void updateWidgets() {
+        Context context = getContext();
+        Intent dataUpdatedIntent = new Intent(ACTION_DATA_UPDATED)
+                .setPackage(context.getPackageName());
+        context.sendBroadcast(dataUpdatedIntent);
     }
 
     private void notifyWeather() {

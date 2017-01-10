@@ -1,8 +1,11 @@
 package com.example.animo.sunshine.app;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.TypedArray;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -14,6 +17,7 @@ import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -21,6 +25,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.widget.AbsListView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -36,8 +42,14 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     /*private ListView mListView;
     private int mPosition=ListView.INVALID_POSITION;*/
     private RecyclerView mRecyclerView;
-    private int mPosition = RecyclerView.NO_POSITION;
+    //private int mPosition = RecyclerView.NO_POSITION;
     private boolean mUseTodayLayout;
+    private int mChoiceMode;
+    private long mInitialSelectedDate = -1;
+    private boolean mAutoSelectView;
+
+
+    private boolean mHoldForTransition;
 
     private static final String SELECTED_KEY="selected_position";
 
@@ -116,11 +128,16 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
         inflater.inflate(R.menu.forecastfragment, menu);
     }
 
+
+    public void setInitialSelectedDate(long initialSelectedDate) {
+        mInitialSelectedDate = initialSelectedDate;
+    }
+
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        if(mPosition!=RecyclerView.NO_POSITION){
+       /* if(mPosition!=RecyclerView.NO_POSITION){
             outState.putInt(SELECTED_KEY,mPosition);
-        }
+        }*/
         super.onSaveInstanceState(outState);
     }
 
@@ -209,9 +226,9 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
                         .onItemSelected(WeatherContract.WeatherEntry.buildWeatherLocationWithDate(
                                 locationSetting,date
                         ));
-                mPosition = vh.getAdapterPosition();
+                //mPosition = vh.getAdapterPosition();
             }
-        } , emptyView);
+        } , emptyView,mChoiceMode);
 //        View emptyView = rootView.findViewById(R.id.recyclerview_forecast_empty);
         mRecyclerView.setAdapter(mforecastAdapter);
 
@@ -235,7 +252,7 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
         }
 
         if(savedInstanceState!=null && savedInstanceState.containsKey(SELECTED_KEY)){
-            mPosition=savedInstanceState.getInt(SELECTED_KEY);
+            //mPosition=savedInstanceState.getInt(SELECTED_KEY);
         }
         mforecastAdapter.setUseTodayLayout(mUseTodayLayout);
         return rootView;
@@ -259,12 +276,53 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     }
 
     @Override
-    public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
-        mforecastAdapter.swapCursor(cursor);
-        if(mPosition!=ListView.INVALID_POSITION){
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        mforecastAdapter.swapCursor(data);
+       /* if(mPosition!=ListView.INVALID_POSITION){
             mRecyclerView.smoothScrollToPosition(mPosition);
-        }
+        }*/
         updateEmptyView();
+        if ( data.getCount() == 0 ) {
+            getActivity().supportStartPostponedEnterTransition();
+        } else {
+            mRecyclerView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+                @Override
+                public boolean onPreDraw() {
+                    // Since we know we're going to get items, we keep the listener around until
+                    // we see Children.
+                    if (mRecyclerView.getChildCount() > 0) {
+                        mRecyclerView.getViewTreeObserver().removeOnPreDrawListener(this);
+                        int position = mforecastAdapter.getSelectedItemPosition();
+                        if (position == RecyclerView.NO_POSITION &&
+                                -1 != mInitialSelectedDate) {
+                            Cursor data = mforecastAdapter.getCursor();
+                            int count = data.getCount();
+                            int dateColumn = data.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_DATE);
+                            for ( int i = 0; i < count; i++ ) {
+                                data.moveToPosition(i);
+                                if ( data.getLong(dateColumn) == mInitialSelectedDate ) {
+                                    position = i;
+                                    break;
+                                }
+                            }
+                        }
+                        if (position == RecyclerView.NO_POSITION) position = 0;
+                        // If we don't need to restart the loader, and there's a desired position to restore
+                        // to, do so now.
+                        mRecyclerView.smoothScrollToPosition(position);
+                        RecyclerView.ViewHolder vh = mRecyclerView.findViewHolderForAdapterPosition(position);
+                        if (null != vh && mAutoSelectView) {
+                            mforecastAdapter.selectView(vh);
+                        }
+                        if ( mHoldForTransition ) {
+                            getActivity().supportStartPostponedEnterTransition();
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+            });
+        }
 
     }
 
@@ -300,6 +358,8 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
         mforecastAdapter.swapCursor(null);
 
     }
+
+
 
     public void setUseTodayLayout(boolean useTodayLayout){
         mUseTodayLayout=useTodayLayout;

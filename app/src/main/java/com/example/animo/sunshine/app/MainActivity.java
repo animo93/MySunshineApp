@@ -17,6 +17,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 
+import com.example.animo.sunshine.app.data.WeatherContract;
 import com.example.animo.sunshine.app.gcm.RegistrationIntentService;
 import com.example.animo.sunshine.app.sync.SunshineSyncAdapter;
 import com.google.android.gms.common.ConnectionResult;
@@ -33,22 +34,13 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
     private String mLocation;
     private boolean mTwoPane;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         mLocation=Utility.getPreferredLocation(this);
+        Uri contentUri = getIntent() != null ? getIntent().getData() : null;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-       /* Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
-        FloatingActionButton fab = java.lang.String(FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });*/
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
@@ -56,8 +48,14 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
         if(findViewById(R.id.weather_detail_container)!=null) {
             mTwoPane = true;
             if (savedInstanceState == null) {
+                DetailActivityFragment fragment = new DetailActivityFragment();
+                if (contentUri != null) {
+                    Bundle args = new Bundle();
+                    args.putParcelable(DetailActivityFragment.DETAIL_URI, contentUri);
+                    fragment.setArguments(args);
+                }
                 getSupportFragmentManager().beginTransaction()
-                        .replace(R.id.weather_detail_container, new DetailActivityFragment(), DETAILFRAGMENT_TAG)
+                        .replace(R.id.weather_detail_container, fragment, DETAILFRAGMENT_TAG)
                         .commit();
             }
         }else {
@@ -69,6 +67,10 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
         MainActivityFragment mainActivityFragment= (MainActivityFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.fragment_forecast);
         mainActivityFragment.setUseTodayLayout(!mTwoPane);
+        if (contentUri != null) {
+            mainActivityFragment.setInitialSelectedDate(
+                    WeatherContract.WeatherEntry.getDateFromUri(contentUri));
+        }
         SunshineSyncAdapter.initializeSyncAdapter(this);
 
         if(checkPlayServices()){
@@ -107,6 +109,7 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
+
 
     @Override
     protected void onResume() {

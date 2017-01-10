@@ -3,6 +3,7 @@ package com.example.animo.sunshine.app;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.os.Bundle;
 import android.support.v4.widget.CursorAdapter;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -22,23 +23,33 @@ import com.example.animo.sunshine.app.data.WeatherContract;
     private static final int VIEW_TYPE_COUNT=2;
     private static final int VIEW_TYPE_TODAY=0;
     private static final int VIEW_TYPE_FUTURE_DAY=1;
+    final private ItemChoiceManager mICM;
 
     final private ForecastAdapterOnClickHandler mClickHandler;
     final private View mEmptyView;
+
 
     private boolean mUseTodayLayout=true;
     final private Context mContext;
     private Cursor mCursor;
 
-    public ForecastAdapter(Context context, ForecastAdapterOnClickHandler dh, View emptyView) {
+
+    public ForecastAdapter(Context context, ForecastAdapterOnClickHandler dh, View emptyView,int choiceMode) {
         mContext=context;
         mClickHandler=dh;
         mEmptyView=emptyView;
+        mICM = new ItemChoiceManager(this);
+        mICM.setChoiceMode(choiceMode);
     }
 
     public static interface ForecastAdapterOnClickHandler {
         void onClick(Long date, ForecastAdapterViewHolder vh);
     }
+
+    public int getSelectedItemPosition() {
+        return mICM.getSelectedItemPosition();
+    }
+
 
 
     @Override
@@ -68,13 +79,16 @@ import com.example.animo.sunshine.app.data.WeatherContract;
         mCursor.moveToPosition(position);
         int weatherId = mCursor.getInt(MainActivityFragment.COL_WEATHER_CONDITION_ID);
         int defaultImage;
+        boolean useLongToday;
 
         switch (getItemViewType(position)) {
             case VIEW_TYPE_TODAY:
                 defaultImage = Utility.getArtResourceForWeatherCondition(weatherId);
+                useLongToday = true;
                 break;
             default:
                 defaultImage = Utility.getIconResourceForWeatherCondition(weatherId);
+                useLongToday = false;
         }
 
         if ( Utility.usingLocalGraphics(mContext) ) {
@@ -91,7 +105,7 @@ import com.example.animo.sunshine.app.data.WeatherContract;
         long dateInMillis = mCursor.getLong(MainActivityFragment.COL_WEATHER_DATE);
 
         // Find TextView and set formatted date on it
-        forecastAdapterViewHolder.mDateView.setText(Utility.getFriendlyDayString(mContext, dateInMillis));
+        forecastAdapterViewHolder.mDateView.setText(Utility.getFriendlyDayString(mContext, dateInMillis,useLongToday));
 
         // Read weather forecast from cursor
         String description = Utility.getStringForWeatherCondition(mContext, weatherId);
@@ -117,6 +131,16 @@ import com.example.animo.sunshine.app.data.WeatherContract;
         forecastAdapterViewHolder.mLowTempView.setContentDescription(mContext.getString(R.string.a11y_low_temp, lowString));
 
 
+        mICM.onBindViewHolder(forecastAdapterViewHolder, position);
+
+
+    }
+    public void onRestoreInstanceState(Bundle savedInstanceState) {
+        mICM.onRestoreInstanceState(savedInstanceState);
+    }
+
+    public void onSaveInstanceState(Bundle outState) {
+        mICM.onSaveInstanceState(outState);
     }
 
     @Override
@@ -134,6 +158,13 @@ import com.example.animo.sunshine.app.data.WeatherContract;
         mCursor = newCursor;
         notifyDataSetChanged();
         mEmptyView.setVisibility(getItemCount()==0 ? View.VISIBLE : View.GONE);
+    }
+
+    public void selectView(RecyclerView.ViewHolder viewHolder) {
+        if ( viewHolder instanceof ForecastAdapter.ForecastAdapterViewHolder) {
+            ForecastAdapter.ForecastAdapterViewHolder vfh = (ForecastAdapterViewHolder)viewHolder;
+            vfh.onClick(vfh.itemView);
+        }
     }
 
     public Cursor getCursor() {
@@ -163,8 +194,11 @@ import com.example.animo.sunshine.app.data.WeatherContract;
             mCursor.moveToPosition(adapterPosition);
             int dateColumnIndex = mCursor.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_DATE);
             mClickHandler.onClick(mCursor.getLong(dateColumnIndex), this);
+            mICM.onClick(this);
 
         }
+
+
     }
 
 /*    @Override

@@ -5,7 +5,7 @@
           android:title="@string/action_share"
           app:showAsAction="always"
         android:icon="@drawable/abc_ic_menu_share_mtrl_alpha"/>
-          <!--app:actionProviderClass="android.support.v7.widget.ShareActionProvider" />-->
+          <!--app:actionProviderClass="android.support.v7.com.example.animo.sunshine.app.widget.ShareActionProvider" />-->
 
 
 </menu>
