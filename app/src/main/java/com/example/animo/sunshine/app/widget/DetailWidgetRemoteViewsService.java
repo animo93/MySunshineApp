@@ -98,7 +98,7 @@ public class DetailWidgetRemoteViewsService extends RemoteViewsService {
                 int weatherArtResourceId = Utility.getIconResourceForWeatherCondition(weatherId);
                 Bitmap weatherArtImage = null;
                 if ( !Utility.usingLocalGraphics(DetailWidgetRemoteViewsService.this) ) {
-                    String weatherArtResourceUrl = Utility.getArtUrlForWeatherCondition(
+                        String weatherArtResourceUrl = Utility.getArtUrlForWeatherCondition(
                             DetailWidgetRemoteViewsService.this, weatherId);
                     try {
                         weatherArtImage = Glide.with(DetailWidgetRemoteViewsService.this)
